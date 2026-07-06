@@ -1,0 +1,40 @@
+name: clock
+# 자가 구동 시계 — GitHub 예약이 안 되는 계정용.
+# workflow_dispatch(작동함)로 스스로를 재실행하며 매일 07:40 KST에 스캔 트리거.
+# Public 저장소라 Actions 무제한 → 24/7 무료.
+on:
+  workflow_dispatch:
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - name: 다음 07:40 KST까지 대기 후 트리거
+        run: |
+          NOW=$(date +%s)
+          TARGET=$(TZ=Asia/Seoul date -d 'today 07:40' +%s)
+          if [ "$TARGET" -le "$NOW" ]; then TARGET=$(TZ=Asia/Seoul date -d 'tomorrow 07:40' +%s); fi
+          DOW=$(TZ=Asia/Seoul date -d "@$TARGET" +%u)
+          DIFF=$((TARGET-NOW))
+          echo "다음 트리거까지 ${DIFF}초 (요일 $DOW)"
+          if [ "$DIFF" -gt 18000 ]; then
+            sleep 18000
+          else
+            sleep "$DIFF"
+            if [ "$DOW" -le 6 ]; then
+              curl -s -o /dev/null -w "스캔 트리거 HTTP=%{http_code}\n" -X POST \
+                -H "Authorization: Bearer ${{ secrets.DISPATCH_TOKEN }}" \
+                -H "Accept: application/vnd.github+json" \
+                https://api.github.com/repos/betterforwhat/infixable/actions/workflows/daily_all.yml/dispatches \
+                -d '{"ref":"main"}'
+            fi
+            sleep 120
+          fi
+      - name: 시계 재가동 (자기 자신 재실행)
+        if: always()
+        run: |
+          curl -s -o /dev/null -w "시계 재가동 HTTP=%{http_code}\n" -X POST \
+            -H "Authorization: Bearer ${{ secrets.DISPATCH_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/betterforwhat/infixable-trigger/actions/workflows/clock.yml/dispatches \
+            -d '{"ref":"main"}'

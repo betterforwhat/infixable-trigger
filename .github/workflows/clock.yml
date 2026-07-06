@@ -31,7 +31,7 @@ jobs:
             sleep 120
           fi
       - name: 시계 재가동 (자기 자신 재실행)
-        if: always()
+        if: ${{ !cancelled() }}
         run: |
           curl -s -o /dev/null -w "시계 재가동 HTTP=%{http_code}\n" -X POST \
             -H "Authorization: Bearer ${{ secrets.DISPATCH_TOKEN }}" \

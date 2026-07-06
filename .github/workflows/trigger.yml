@@ -1,0 +1,17 @@
+name: infixable daily trigger
+on:
+  schedule:
+    - cron: "37 22 * * 1-5"   # 매일 07:37 KST — private daily_all 트리거
+    - cron: "48 11 * * *"     # 검증용 테스트(1회)
+  workflow_dispatch:
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: private 워크플로우 트리거
+        run: |
+          curl -s -o /dev/null -w "dispatch HTTP=%{http_code}\n" -X POST \
+            -H "Authorization: Bearer ${{ secrets.DISPATCH_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/betterforwhat/infixable/actions/workflows/daily_all.yml/dispatches \
+            -d '{"ref":"main"}'
